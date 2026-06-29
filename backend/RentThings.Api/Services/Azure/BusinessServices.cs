@@ -26,7 +26,8 @@ public class ListingService(
     RentThingsDbContext db,
     IBlobStorageService blobStorage,
     IAiVisionService vision,
-    IMapsService maps) : IListingService
+    IMapsService maps,
+    INotificationPublisher notifications) : IListingService
 {
     public async Task<PagedResult<ListingDto>> SearchAsync(ListingSearchParams p, CancellationToken ct = default)
     {
@@ -122,7 +123,7 @@ public class ListingService(
             State = req.State,
             Latitude = geocode?.Latitude,
             Longitude = geocode?.Longitude,
-            Status = ListingStatus.PendingReview
+            Status = ListingStatus.Active
         };
         db.Listings.Add(listing);
         await db.SaveChangesAsync(ct);
@@ -131,7 +132,9 @@ public class ListingService(
             await SetAvailabilityRangeAsync(listing.Id, req.AvailableFrom.Value, req.AvailableTo.Value, ct);
 
         await db.Entry(listing).Reference(l => l.Owner).LoadAsync(ct);
-        return MapListing(listing, maps: maps);
+        var dto = MapListing(listing, maps: maps);
+        await notifications.PublishListingCreatedAsync(dto, ct);
+        return dto;
     }
 
     static async Task SetAvailabilityRangeAsync(RentThingsDbContext db, Guid listingId, DateOnly from, DateOnly to, CancellationToken ct)
@@ -182,7 +185,9 @@ public class ListingService(
             await SetAvailabilityRangeAsync(id, req.AvailableFrom.Value, req.AvailableTo.Value, ct);
         }
 
-        return MapListing(listing, maps: maps);
+        var dto = MapListing(listing, maps: maps);
+        await notifications.PublishListingUpdatedAsync(dto, ct);
+        return dto;
     }
 
     public async Task<bool> DeleteAsync(Guid id, Guid ownerId, CancellationToken ct = default)
@@ -228,6 +233,10 @@ public class ListingService(
             listing.Category = validation.Category;
 
         await db.SaveChangesAsync(ct);
+
+        await db.Entry(listing).Reference(l => l.Owner).LoadAsync(ct);
+        await db.Entry(listing).Collection(l => l.Images).LoadAsync(ct);
+        await notifications.PublishListingUpdatedAsync(MapListing(listing, maps: maps), ct);
 
         return new ListingImageDto(image.Id, image.BlobUrl, image.ThumbnailUrl, image.IsPrimary, image.PassedValidation, image.ValidationNotes);
     }
@@ -304,6 +313,10 @@ public class ListingService(
         listing.Status = status;
         listing.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
+
+        var updated = await db.Listings.Include(l => l.Owner).Include(l => l.Images)
+            .FirstAsync(l => l.Id == id, ct);
+        await notifications.PublishListingUpdatedAsync(MapListing(updated, maps: maps), ct);
         return true;
     }
 

@@ -7,7 +7,7 @@
 			"type": "process",
 			"args": [
 				"clean",
-				"${workspaceFolder}/../RentThings.Api.csproj",
+				"${workspaceFolder}/RentThings.Api.csproj",
 				"/property:GenerateFullPaths=true",
 				"/consoleloggerparameters:NoSummary"
 			],
@@ -19,7 +19,7 @@
 			"type": "process",
 			"args": [
 				"publish",
-				"${workspaceFolder}/../RentThings.Api.csproj",
+				"${workspaceFolder}/RentThings.Api.csproj",
 				"--configuration",
 				"Release",
 				"/property:GenerateFullPaths=true",

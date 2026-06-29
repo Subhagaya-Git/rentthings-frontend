@@ -8,7 +8,9 @@ public static class AzureServiceCollectionExtensions
     public static IServiceCollection AddRentThingsAzureServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<AzureSettings>(configuration.GetSection(AzureSettings.SectionName));
+        services.PostConfigure<AzureSettings>(settings => ApplyLegacyBlobStorageFallback(configuration, settings));
         var azure = configuration.GetSection(AzureSettings.SectionName).Get<AzureSettings>() ?? new();
+        ApplyLegacyBlobStorageFallback(configuration, azure);
         var integration = azure.Integration;
 
         // 1. Azure Blob Storage
@@ -66,4 +68,20 @@ public static class AzureServiceCollectionExtensions
 
     private static bool IsBlobConfigured(string? value) =>
         IsConfigured(value) || value == "UseDevelopmentStorage=true";
+
+    /// <summary>
+    /// Supports legacy root-level AzureStorage section (Azure:BlobStorage is canonical).
+    /// </summary>
+    private static void ApplyLegacyBlobStorageFallback(IConfiguration configuration, AzureSettings azure)
+    {
+        if (IsBlobConfigured(azure.BlobStorage.ConnectionString)) return;
+
+        var legacyConnection = configuration["AzureStorage:ConnectionString"];
+        if (!IsBlobConfigured(legacyConnection)) return;
+
+        azure.BlobStorage.ConnectionString = legacyConnection!;
+        var legacyContainer = configuration["AzureStorage:ContainerName"];
+        if (IsConfigured(legacyContainer))
+            azure.BlobStorage.ContainerName = legacyContainer!;
+    }
 }

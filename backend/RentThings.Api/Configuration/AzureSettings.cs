@@ -13,6 +13,7 @@ public class AzureSettings
     public FunctionsSettings Functions { get; set; } = new();
     public MapsSettings Maps { get; set; } = new();
     public SignalRSettings SignalR { get; set; } = new();
+    public AzureTranslatorSettings AzureTranslator { get; set; } = new();
     public AzureIntegrationSettings Integration { get; set; } = new();
 }
 
@@ -75,4 +76,11 @@ public class MapsSettings
 public class SignalRSettings
 {
     public string ConnectionString { get; set; } = string.Empty;
+}
+
+public class AzureTranslatorSettings
+{
+    public string ApiKey { get; set; } = string.Empty;
+    public string Endpoint { get; set; } = "https://api.cognitive.microsofttranslator.com/";
+    public string Region { get; set; } = string.Empty;
 }

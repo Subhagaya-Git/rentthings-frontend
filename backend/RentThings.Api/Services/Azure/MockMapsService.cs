@@ -9,6 +9,11 @@ public class MockMapsService : IMapsService
         ["San Francisco, CA"] = (37.7749, -122.4194),
         ["Los Angeles, CA"] = (34.0522, -118.2437),
         ["Denver, CO"] = (39.7392, -104.9903),
+        ["Colombo"] = (6.9271, 79.8612),
+        ["Negombo"] = (7.2088, 79.8358),
+        ["Kandy"] = (7.2906, 80.6337),
+        ["Galle"] = (6.0535, 80.2210),
+        ["Kalutara"] = (6.5854, 79.9607),
     };
 
     public Task<GeocodeResult?> GeocodeAsync(string address, CancellationToken ct = default)
