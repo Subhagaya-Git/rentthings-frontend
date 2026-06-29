@@ -1,25 +1,45 @@
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
-import type { Notification } from '@/types';
+import type { Listing, Notification } from '@/types';
 
 let connection: HubConnection | null = null;
 
-export async function startNotificationHub(
-  onNotification: (notification: Notification) => void,
-): Promise<void> {
-  const token = localStorage.getItem('rentthings_token');
-  if (!token || connection) return;
+export interface SignalRHandlers {
+  onNotification?: (notification: Notification) => void;
+  onListingCreated?: (listing: Listing) => void;
+  onListingUpdated?: (listing: Listing) => void;
+}
 
-  connection = new HubConnectionBuilder()
-    .withUrl(`/hubs/notifications?access_token=${encodeURIComponent(token)}`)
+export async function startNotificationHub(handlers: SignalRHandlers): Promise<void> {
+  await stopNotificationHub();
+
+  const token = localStorage.getItem('rentthings_token');
+  const url = token
+    ? `/hubs/notifications?access_token=${encodeURIComponent(token)}`
+    : '/hubs/notifications';
+
+  const hub = new HubConnectionBuilder()
+    .withUrl(url)
     .withAutomaticReconnect()
     .configureLogging(LogLevel.Information)
     .build();
 
-  connection.on('ReceiveNotification', (notification: Notification) => {
-    onNotification(notification);
-  });
+  if (handlers.onNotification) {
+    hub.on('ReceiveNotification', handlers.onNotification);
+  }
+  if (handlers.onListingCreated) {
+    hub.on('ListingCreated', handlers.onListingCreated);
+  }
+  if (handlers.onListingUpdated) {
+    hub.on('ListingUpdated', handlers.onListingUpdated);
+  }
 
-  await connection.start();
+  try {
+    await hub.start();
+    connection = hub;
+  } catch (err) {
+    await hub.stop().catch(() => undefined);
+    throw err;
+  }
 }
 
 export async function stopNotificationHub(): Promise<void> {
@@ -27,4 +47,8 @@ export async function stopNotificationHub(): Promise<void> {
     await connection.stop();
     connection = null;
   }
+}
+
+export function isNotificationHubConnected(): boolean {
+  return connection?.state === 'Connected';
 }

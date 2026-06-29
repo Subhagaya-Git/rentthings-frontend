@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Bell, Menu, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import * as signalR from '@microsoft/signalr';
+import { useState } from 'react';
 import { useAuthStore, useUiStore } from '@/stores';
 import { getDashboardPath } from '@/lib/utils';
 
@@ -10,35 +9,10 @@ export function Navbar() {
   const { user, logout } = useAuthStore();
   const { sidebarOpen, toggleSidebar } = useUiStore();
 
-
-  // 🔔 SignalR සහ Notification සඳහා අවශ්‍ය States
   const [notifications, setNotifications] = useState<string[]>([]);
   const [hasUnread, setHasUnread] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAvatarDropdownOpen, setIsAvatarDropdownOpen] = useState(false);
-
-  // 🌐 SignalR Real-time WebSockets සම්බන්ධතාවය පණගැන්වීම
-  useEffect(() => {
-    // Backend එකේ SignalR Hub URL එක (appsettings එකට අනුව)
-    const connection = new signalR.HubConnectionBuilder()
-      .withUrl("http://localhost:5174/hubs/notifications") 
-      .withAutomaticReconnect()
-      .build();
-
-    // ⚡ Backend එකෙන් Live Notification එකක් ආ විට ක්‍රියාත්මක වන කොටස
-    connection.on("ReceiveNotification", (message: string) => {
-      setNotifications(prev => [message, ...prev]);
-      setHasUnread(true); // Navbar එකේ Bell එක උඩ Amber Dot එක පෙන්වීම
-    });
-
-    connection.start()
-      .then(() => console.log("Connected to Azure SignalR Successfully! 🚀"))
-      .catch(err => console.error("SignalR Connection Error: ", err));
-
-    return () => {
-      connection.stop();
-    };
-  }, []);
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-100">

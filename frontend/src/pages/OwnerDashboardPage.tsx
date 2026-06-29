@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { DollarSign, Package, Plus, Pencil, Power, Inbox, CheckCircle, Clock } from 'lucide-react';
+import { DollarSign, Package, Plus, Pencil, Power, Inbox, CheckCircle, Clock, Trash2 } from 'lucide-react';
 import { Button, Card, EmptyState } from '@/components/ui';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { listingsApi, rentalsApi } from '@/lib/api';
@@ -113,6 +113,18 @@ export default function OwnerDashboardPage({ tab = 'listings' }: { tab?: Tab }) 
                       <Button size="sm" variant="secondary" className="rounded-xl font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border-0" loading={deactivateMutation.isPending} onClick={() => deactivateMutation.mutate(l.id)}>
                         <Power className="h-4 w-4 mr-1.5" /> Deactivate
                       </Button>
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (window.confirm("Are you sure you want to delete this listing?")) {
+                            listingsApi.delete(l.id).then(() => qc.invalidateQueries({ queryKey: ['owner-dashboard'] }));
+                          }
+                        }}
+                        className="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-xl border border-red-200 transition-colors shadow-sm flex items-center justify-center"
+                        title="Delete Listing"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -127,7 +139,21 @@ export default function OwnerDashboardPage({ tab = 'listings' }: { tab?: Tab }) 
                 {inactiveListings.map((l) => (
                   <div key={l.id} className="flex justify-between items-center p-4 rounded-2xl bg-white border border-slate-100 text-sm">
                     <span className="font-medium text-slate-600">{l.title}</span>
-                    <StatusBadge status={l.status} />
+                    <div className="flex items-center gap-4">
+                      <StatusBadge status={l.status} />
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (window.confirm("Are you sure you want to delete this listing?")) {
+                            listingsApi.delete(l.id).then(() => qc.invalidateQueries({ queryKey: ['owner-dashboard'] }));
+                          }
+                        }}
+                        className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-lg border border-red-200 transition-colors shadow-sm flex items-center justify-center"
+                        title="Delete Listing"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

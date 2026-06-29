@@ -2,15 +2,30 @@ import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/lib/utils';
 import type { Listing } from '@/types';
 import { Badge, Skeleton } from '../ui';
-import { Star, MapPin } from 'lucide-react';
-
-export function ListingCard({ listing }: { listing: Listing }) {
+import { Star, MapPin, Trash2 } from 'lucide-react';
+import { useAuthStore } from '@/stores';
+import { listingsApi } from '@/lib/api';
+export function ListingCard({ listing, allowDelete = false }: { listing: Listing, allowDelete?: boolean }) {
+  const { user } = useAuthStore();
   const image = listing.images.find((i) => i.isPrimary)?.url || listing.images[0]?.url || 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?w=400';
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this listing?")) return;
+    try {
+      await listingsApi.delete(id);
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete listing.');
+    }
+  };
 
   return (
     <Link
       to={`/listings/${listing.id}`}
-      className="group block bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-slate-100"
+      className="group block relative bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-slate-100 h-full"
     >
       {/* Image area */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
@@ -67,6 +82,15 @@ export function ListingCard({ listing }: { listing: Listing }) {
           </span>
         </div>
       </div>
+      {allowDelete && (user?.role === 'Admin' || user?.id === (listing as any).ownerId) && (
+        <button 
+          onClick={(e) => handleDelete(e, listing.id)}
+          className="absolute bottom-16 right-4 bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-xl border border-red-200 transition-colors shadow-sm z-10"
+          title="Delete Listing"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
     </Link>
   );
 }
@@ -87,10 +111,25 @@ export function ListingCardSkeleton() {
   );
 }
 
-export function ListingListItem({ listing }: { listing: Listing }) {
+export function ListingListItem({ listing, allowDelete = false }: { listing: Listing, allowDelete?: boolean }) {
+  const { user } = useAuthStore();
   const image = listing.images[0]?.url || 'https://images.unsplash.com/photo-1560393464-5c69a73c5770?w=400';
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this listing?")) return;
+    try {
+      await listingsApi.delete(id);
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete listing.');
+    }
+  };
+
   return (
-    <Link to={`/listings/${listing.id}`} className="bg-white flex gap-4 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow border border-slate-100">
+    <Link to={`/listings/${listing.id}`} className="relative bg-white flex gap-4 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow border border-slate-100 h-full">
       <div className="relative shrink-0">
         <img 
           src={image} 
@@ -129,6 +168,15 @@ export function ListingListItem({ listing }: { listing: Listing }) {
           <Badge className="bg-slate-100 text-slate-600 border-none font-medium">{listing.category}</Badge>
         </div>
       </div>
+      {allowDelete && (user?.role === 'Admin' || user?.id === (listing as any).ownerId) && (
+        <button 
+          onClick={(e) => handleDelete(e, listing.id)}
+          className="absolute bottom-4 right-4 bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-xl border border-red-200 transition-colors shadow-sm z-10"
+          title="Delete Listing"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
     </Link>
   );
 }

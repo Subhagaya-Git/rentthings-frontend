@@ -4,9 +4,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Card, EmptyState, Input, Skeleton, TrustBadge } from '@/components/ui';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui';
-import { adminApi } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Users, LayoutDashboard, Flag, Activity, FileText, CheckCircle } from 'lucide-react';
+import { adminApi, listingsApi } from '@/lib/api';
+import { Users, LayoutDashboard, Flag, Activity, FileText, CheckCircle, Trash2 } from 'lucide-react';
 
 type Tab = 'overview' | 'users' | 'listings' | 'transactions' | 'reports';
 
@@ -242,6 +242,18 @@ export default function AdminDashboardPage({ tab = 'overview' }: { tab?: Tab }) 
                   {l.status === 'PendingReview' && <Button size="sm" className="font-bold bg-emerald-600 hover:bg-emerald-700 px-5 rounded-xl" onClick={() => listingMutation.mutate({ id: l.id, status: 'Active' })}>Approve</Button>}
                   <Button size="sm" variant="secondary" className="font-bold px-5 rounded-xl border-0 bg-amber-200/50 hover:bg-amber-200 text-amber-900" onClick={() => listingMutation.mutate({ id: l.id, status: 'Flagged' })}>Flag</Button>
                   <Button size="sm" variant="danger" className="font-bold px-5 rounded-xl border-0" onClick={() => listingMutation.mutate({ id: l.id, status: 'Inactive' })}>Deactivate</Button>
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (window.confirm("Are you sure you want to delete this listing permanently?")) {
+                        listingsApi.delete(l.id).then(() => qc.invalidateQueries({ queryKey: ['admin-flagged'] }));
+                      }
+                    }}
+                    className="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-xl border border-red-200 transition-colors shadow-sm flex items-center justify-center"
+                    title="Delete Listing"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}

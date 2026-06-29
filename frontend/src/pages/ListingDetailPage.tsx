@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ListingMap from '@/components/ui/MapComponent';
 import { PremiumGallery } from '@/components/listing/PremiumGallery';
 import { OwnerProfileBlock } from '@/components/listing/OwnerProfileBlock';
@@ -10,6 +10,7 @@ import { ReviewsSection } from '@/components/listing/ReviewsSection';
 import { ListingCardSkeleton } from '@/components/listings/ListingCard';
 import { StarRating } from '@/components/ui';
 import { listingsApi, rentalsApi, reviewsApi, usersApi } from '@/lib/api';
+import api from '@/lib/api';
 import { useAuthStore } from '@/stores';
 
 export default function ListingDetailPage() {
@@ -19,6 +20,10 @@ export default function ListingDetailPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [message, setMessage] = useState('');
+  
+  const [displayedDescription, setDisplayedDescription] = useState('');
+  const [isTranslating, setIsTranslating] = useState(false);
+  
   const qc = useQueryClient();
 
   const { data: listing, isLoading } = useQuery({
@@ -26,6 +31,12 @@ export default function ListingDetailPage() {
     queryFn: () => listingsApi.get(id!),
     enabled: !!id,
   });
+
+  useEffect(() => {
+    if (listing) {
+      setDisplayedDescription(listing.description);
+    }
+  }, [listing]);
 
   const { data: myRentals } = useQuery({
     queryKey: ['my-rentals'],
@@ -67,6 +78,28 @@ export default function ListingDetailPage() {
       </div>
     );
   }
+
+  const handleTranslate = async (targetLang: 'en' | 'si' | 'ta' | string) => {
+    if (!listing) return;
+    
+    if (targetLang === 'original') {
+      setDisplayedDescription(listing.description);
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const { data } = await api.post<Array<{ translations: Array<{ text: string }> }>>('/translate', {
+        text: listing.description,
+        targetLanguage: targetLang,
+      });
+      setDisplayedDescription(data[0].translations[0].text);
+    } catch (error) {
+      console.error('Translation failed:', error);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   const days = startDate && endDate ? Math.max(1, (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000 + 1) : 0;
   const total = days * listing.pricePerDay;
@@ -114,11 +147,37 @@ export default function ListingDetailPage() {
           {owner && <OwnerProfileBlock owner={owner} />}
 
           <article className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-4">About this item</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900">Description</h2>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-500">Translate:</span>
+                <select 
+                  className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none cursor-pointer transition-colors hover:bg-slate-100"
+                  onChange={(e) => handleTranslate(e.target.value)}
+                  disabled={isTranslating}
+                  defaultValue="original"
+                >
+                  <option value="original">Original</option>
+                  <option value="en">🇺🇸 English ('en')</option>
+                  <option value="si">🇱🇰 සිංහල ('si')</option>
+                  <option value="ta">🇱🇰 தமிழ் ('ta')</option>
+                </select>
+              </div>
+            </div>
+
             <div className="prose prose-slate max-w-none text-base leading-relaxed text-slate-600">
-              {listing.description.split('\n').map((paragraph, i) => (
-                <p key={i} className={i > 0 ? 'mt-4' : ''}>{paragraph}</p>
-              ))}
+              {isTranslating ? (
+                <div className="space-y-3 animate-pulse py-2">
+                  <div className="h-4 bg-slate-200 rounded-full w-full"></div>
+                  <div className="h-4 bg-slate-200 rounded-full w-5/6"></div>
+                  <div className="h-4 bg-slate-200 rounded-full w-4/6"></div>
+                </div>
+              ) : (
+                displayedDescription.split('\n').map((paragraph, i) => (
+                  <p key={i} className={i > 0 ? 'mt-4' : ''}>{paragraph}</p>
+                ))
+              )}
             </div>
           </article>
 

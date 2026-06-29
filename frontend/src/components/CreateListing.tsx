@@ -22,7 +22,7 @@ export default function CreateListing() {
         formData.append("price", price);
 
         try {
-            const response = await axios.post("http://localhost:5174/api/listings/create", formData, {
+const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/listings/create`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             setMessage(`✅ ${response.data.message}`);
